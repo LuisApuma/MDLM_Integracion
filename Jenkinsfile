@@ -3,8 +3,9 @@ pipeline {
 
     environment {
         // 1. Configuración de tu Stack en VM1
-        SONAR_HOST   = "http://sonarqube_server:9000"
-        STACK_NET    = "cicd-internal-network" // Nombre de red en tu docker-compose.yml
+        // IMPORTANTE: Se usa guion medio (-) porque el guion bajo (_) es ilegal para el motor Tomcat de Sonar
+        SONAR_HOST   = "http://sonarqube-server:9000"
+        STACK_NET    = "cicd-internal-network"
         
         // 2. Configuración de la App
         IMAGE_NAME   = "backend-crud-app"
@@ -12,9 +13,8 @@ pipeline {
         // --- COMENTADO: Harbor no está listo aún ---
         // HARBOR_URL   = "${env.GLOBAL_HARBOR_URL}" 
         
-        // 3. Credenciales (ID configurados en Jenkins UI)
+        // 3. Credenciales
         SONAR_TOKEN  = credentials('sonar-token')
-        // HARBOR_CREDS = credentials('harbor-registry-auth')
     }
 
     stages {
@@ -22,13 +22,9 @@ pipeline {
             steps {
                 script {
                     echo "Verificando conectividad básica (Ping)..."
-                    sh "docker run --rm --network ${STACK_NET} alpine ping -c 2 sonarqube_server"
+                    sh "docker run --rm --network ${STACK_NET} alpine ping -c 2 sonarqube-server"
 
-                    echo "Probando endpoint de SonarQube con curl (Depuración)..."
-                    // Esto nos dirá si el servidor responde 200 (OK) o 400 (Error)
-                    sh "docker run --rm --network ${STACK_NET} curlimages/curl -v ${SONAR_HOST}/api/system/status"
-
-                    echo "Analizando código con parámetros directos..."
+                    echo "Analizando código en SonarQube..."
                     sh '''
                     docker run --rm \
                         --network ${STACK_NET} \
