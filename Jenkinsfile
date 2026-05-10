@@ -21,18 +21,21 @@ pipeline {
         stage('1. Calidad (SonarQube)') {
             steps {
                 script {
-                    echo "Verificando conectividad con SonarQube..."
-                    // Validamos que el servidor responda en la red interna
+                    echo "Verificando conectividad básica (Ping)..."
                     sh "docker run --rm --network ${STACK_NET} alpine ping -c 2 sonarqube_server"
 
-                    echo "Analizando código en SonarQube..."
+                    echo "Probando endpoint de SonarQube con curl (Depuración)..."
+                    // Esto nos dirá si el servidor responde 200 (OK) o 400 (Error)
+                    sh "docker run --rm --network ${STACK_NET} curlimages/curl -v ${SONAR_HOST}/api/system/status"
+
+                    echo "Analizando código con parámetros directos..."
                     sh '''
                     docker run --rm \
                         --network ${STACK_NET} \
-                        -e SONAR_HOST_URL="${SONAR_HOST}" \
-                        -e SONAR_TOKEN=$SONAR_TOKEN \
                         -v "$(pwd):/usr/src" \
                         sonarsource/sonar-scanner-cli:5.0.1 \
+                        -Dsonar.host.url=$SONAR_HOST \
+                        -Dsonar.login=$SONAR_TOKEN \
                         -Dsonar.projectKey=${IMAGE_NAME} \
                         -Dsonar.sources=src \
                         -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
