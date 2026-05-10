@@ -24,17 +24,19 @@ pipeline {
                     echo "Verificando conectividad básica (Ping)..."
                     sh "docker run --rm --network ${STACK_NET} alpine ping -c 2 sonarqube-server"
 
-                    echo "Analizando código en SonarQube..."
+                    echo "Analizando código con herencia dinámica de volúmenes..."
                     sh '''
                     docker run --rm \
                         --network ${STACK_NET} \
-                        -v "$(pwd):/usr/src" \
+                        --volumes-from ${HOSTNAME} \
+                        -w ${WORKSPACE} \
                         sonarsource/sonar-scanner-cli:5.0.1 \
                         -Dsonar.host.url=$SONAR_HOST \
                         -Dsonar.login=$SONAR_TOKEN \
                         -Dsonar.projectKey=${IMAGE_NAME} \
                         -Dsonar.sources=src \
-                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+                        -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info \
+                        -Dsonar.scm.disabled=true
                     '''
                 }
             }
