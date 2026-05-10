@@ -25,6 +25,7 @@ pipeline {
                     sh """
                     docker run --rm \
                         --network ${STACK_NET} \
+                        --link sonarqube_server:sonarqube_server \
                         -e SONAR_HOST_URL="${SONAR_HOST}" \
                         -e SONAR_TOKEN=${SONAR_TOKEN} \
                         -v "\$(pwd):/usr/src" \
