@@ -1,24 +1,27 @@
-# --- Fase 1: Dependencias (Instalamos todo para poder testear) ---
+# --- Fase 1: Dependencias ---
 FROM node:18-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# --- Fase 2: Test (Opcional pero útil para validación interna) ---
-FROM deps AS tester
-COPY . .
-# Aquí podrías correr tests internos si quisieras
-
-# --- Fase 3: Producción (Solo lo mínimo indispensable) ---
+# --- Fase 2: Runner (Producción e Integración) ---
 FROM node:18-alpine AS runner
 WORKDIR /app
-# Copiamos las dependencias de deps (que incluye sequelize-cli para las migraciones)
+
+# Copiamos dependencias y código
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Fix de permisos: Creamos coverage y damos propiedad al usuario node
+RUN mkdir -p /app/coverage && \
+    chown -R node:node /app && \
+    chmod -R 755 /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
 
+# Seguridad: No correr como root
 USER node
 EXPOSE 3000
+
 CMD ["npm", "start"]
