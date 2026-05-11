@@ -1,18 +1,21 @@
 # --- Fase 1: Dependencias ---
-FROM node:18-alpine AS deps
+FROM node:18.19-alpine AS deps
+# Actualizamos el SO para corregir vulnerabilidades críticas (CVEs)
+RUN apk update && apk upgrade --no-cache
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
 
-# --- Fase 2: Runner (Producción e Integración) ---
-FROM node:18-alpine AS runner
+# --- Fase 2: Runner ---
+FROM node:18.19-alpine AS runner
+# También actualizamos la imagen final
+RUN apk update && apk upgrade --no-cache
 WORKDIR /app
 
-# Copiamos dependencias y código
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Fix de permisos: Creamos coverage y damos propiedad al usuario node
+# Fix de permisos para SonarQube y Seguridad
 RUN mkdir -p /app/coverage && \
     chown -R node:node /app && \
     chmod -R 755 /app
@@ -20,7 +23,6 @@ RUN mkdir -p /app/coverage && \
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Seguridad: No correr como root
 USER node
 EXPOSE 3000
 
