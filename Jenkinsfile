@@ -10,11 +10,12 @@ pipeline {
         // 2. Configuración de la App
         IMAGE_NAME   = "backend-crud-app"
         
-        // --- COMENTADO: Harbor no está listo aún ---
-        // HARBOR_URL   = "${env.GLOBAL_HARBOR_URL}" 
-        
         // 3. Credenciales
+        HARBOR_URL   = "${env.GLOBAL_HARBOR_URL}" 
+        PROJECT_NAME = "impresion-enterprise"
         SONAR_TOKEN  = credentials('sonar-token')
+
+        HARBOR_CREDS = credentials('harbor-moline')
     }
 
     stages {
@@ -97,22 +98,32 @@ pipeline {
             }
         }
 
-        // --- STAGE COMENTADO: Harbor no está listo aún ---
-        /*
         stage('3. Entrega Certificada (Harbor)') {
             steps {
                 script {
                     echo "Enviando imagen certificada a VM2 (Harbor)..."
-                    docker.withRegistry("https://${HARBOR_URL}", 'harbor-registry-auth') {
-                        def customImage = docker.build("${HARBOR_URL}/library/${IMAGE_NAME}:${env.BUILD_ID}")
-                        customImage.push()
-                        customImage.push("latest")
-                    }
+                    
+                    // 1. Login Seguro (Usando las variables de Jenkins)
+                    sh "echo ${HARBOR_CREDS_PSW} | docker login ${HARBOR_URL} -u ${HARBOR_CREDS_USR} --password-stdin"
+                    
+                    // 2. Tagueo de la imagen (Build ID para versionamiento y Latest para producción)
+                    sh """
+                    docker tag ${IMAGE_NAME}:test ${HARBOR_URL}/${PROJECT_NAME}/${IMAGE_NAME}:${env.BUILD_ID}
+                    docker tag ${IMAGE_NAME}:test ${HARBOR_URL}/${PROJECT_NAME}/${IMAGE_NAME}:latest
+                    """
+                    
+                    // 3. Empuje (Push) a la VM2
+                    sh """
+                    docker push ${HARBOR_URL}/${PROJECT_NAME}/${IMAGE_NAME}:${env.BUILD_ID}
+                    docker push ${HARBOR_URL}/${PROJECT_NAME}/${IMAGE_NAME}:latest
+                    """
+                    
+                    echo "¡Proceso completado! Imagen disponible en: ${HARBOR_URL}/${PROJECT_NAME}/${IMAGE_NAME}"
                 }
             }
         }
-        */
     }
+    
 
     post {
         always {
